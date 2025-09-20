@@ -130,17 +130,17 @@ class seirdst(nn.Module):
                 # dilated convolution
                 self.filter_convs.append(nn.Conv2d(in_channels=residual_channels,
                                                    out_channels=dilation_channels,
-                                                   kernel_size=(1,kernel_size),dilation=new_dilation))
+                                                   kernel_size=(1,kernel_size),dilation=(1, new_dilation)))
 
-                self.gate_convs.append(nn.Conv1d(in_channels=residual_channels,
+                self.gate_convs.append(nn.Conv2d(in_channels=residual_channels,
                                                  out_channels=dilation_channels,
-                                                 kernel_size=(1, kernel_size), dilation=new_dilation))
+                                                 kernel_size=(1, kernel_size), dilation=(1, new_dilation)))
 
-                self.residual_convs.append(nn.Conv1d(in_channels=dilation_channels,
+                self.residual_convs.append(nn.Conv2d(in_channels=dilation_channels,
                                                      out_channels=residual_channels,
                                                      kernel_size=(1, 1)))
 
-                self.skip_convs.append(nn.Conv1d(in_channels=dilation_channels,
+                self.skip_convs.append(nn.Conv2d(in_channels=dilation_channels,
                                                  out_channels=skip_channels,
                                                  kernel_size=(1, 1)))
                 self.bn.append(nn.BatchNorm2d(residual_channels))
