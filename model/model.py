@@ -96,6 +96,8 @@ class FC(nn.Module):
 class seirdst(nn.Module):
     def __init__(self, device, num_nodes, dropout=0.3, supports=None, gat_bool=True, addaptadj=True, aptonly=False, noapt=False, aptinit=None, in_dim=8,out_dim=2,residual_channels=8,dilation_channels=8,skip_channels=32,end_channels=64,kernel_size=2,blocks=1,layers=2,emb_length=8):
         super(seirdst, self).__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
         self.dropout = dropout
         self.blocks = blocks
         self.layers = layers
@@ -167,6 +169,8 @@ class seirdst(nn.Module):
 
 
     def forward(self, input):
+        if input.size(1) != self.in_dim: 
+            input = input.permute(0, 3, 2, 1).contiguous()
         in_len = input.size(3)
         if in_len<self.receptive_field:
             x = nn.functional.pad(input,(self.receptive_field-in_len,0,0,0))
@@ -211,7 +215,7 @@ class seirdst(nn.Module):
         x = F.relu(skip)
         x = F.relu(self.end_conv_1(x))
         x = self.end_conv_2(x)
-        
+        x = F.softplus(x)
         return x, 0
 
 

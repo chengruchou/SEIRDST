@@ -141,20 +141,47 @@ def load_adj(pkl_filename, adjtype):
     return sensor_ids, sensor_id_to_ind, adj
 
 
-def load_dataset(dataset_dir, batch_size, valid_batch_size= None, test_batch_size=None):
+def load_dataset(dataset_dir, batch_size, valid_batch_size=None, test_batch_size=None):
+    """
+    讀入資料後：
+      1) 對「輸入 x 的所有通道 (F)」做 per-feature z-score 標準化
+      2) y 的 inverse_transform / 指標計算，統一用「病例（y[...,0]）」的 mean/std 作 scaler
+      3) 回傳 dataloader 與 y 的 scaler
+    """
     data = {}
     for category in ['train', 'val', 'test']:
-        cat_data = np.load(os.path.join(dataset_dir, category + '.npz'))
-        data['x_' + category] = cat_data['x']
-        data['y_' + category] = cat_data['y']
-    scaler = StandardScaler(mean=data['x_train'][..., 0].mean(), std=data['x_train'][..., 0].std())
+        pack = np.load(os.path.join(dataset_dir, category + '.npz'))
+        data['x_' + category] = pack['x'].astype(np.float32)    # (N, Tx, V, F)
+        data['y_' + category] = pack['y'].astype(np.float32)    # (N, Ty, V, F)
+
+    # 1) 對「輸入 x 的所有通道」做 per-feature z-score
+    xtr = data['x_train']                                       # (N, Tx, V, F)
+    F = xtr.shape[-1]
+    mean_x = xtr.reshape(-1, F).mean(axis=0)                    # (F,)
+    std_x  = xtr.reshape(-1, F).std(axis=0) + 1e-6              # (F,)
     for category in ['train', 'val', 'test']:
-        data['x_' + category][..., 0] = scaler.transform(data['x_' + category][..., 0])
+        x = data['x_' + category]
+        data['x_' + category] = (x - mean_x) / std_x
+
+    # 2) 給輸出用的 scaler（僅病例）
+    ytr_cases = data['y_train'][..., 0]                         # (N, Ty, V)
+    mean_y = float(ytr_cases.mean())
+    std_y  = float(ytr_cases.std() + 1e-6)
+    scaler = StandardScaler(mean=mean_y, std=std_y)
+
+    # 3) dataloader 與回傳
     data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size)
-    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], valid_batch_size)
-    data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size)
+    data['val_loader']   = DataLoader(data['x_val'],   data['y_val'],   valid_batch_size)
+    data['test_loader']  = DataLoader(data['x_test'],  data['y_test'],  test_batch_size, pad_with_last_sample=False)
+
     data['scaler'] = scaler
+
+    # 方便檢查
+    data['x_feature_mean'] = mean_x
+    data['x_feature_std']  = std_x
     return data
+
+
 
 def masked_mse(preds, labels, null_val=np.nan):
     if np.isnan(null_val):

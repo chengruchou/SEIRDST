@@ -1,4 +1,8 @@
 dataset/UO200_gjson.json
 test_dataset
 seirdst_embedding_adj.pdf
-model\__pycache__
+model/__pycache__
+result
+*.png
+training_data
+*.pyc
