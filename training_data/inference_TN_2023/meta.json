@@ -1,0 +1,14 @@
+{
+  "year": 2023,
+  "seq_x_used": 6,
+  "horizon_requested": 2,
+  "horizon_returned": 2,
+  "num_villages": 751,
+  "cap": 40,
+  "dataset_dir": "training_data\\dataset_TN_2023_weekly_ext",
+  "checkpoint": "result/TN2023_best.pth",
+  "outputs": {
+    "wide_csv": "training_data\\inference_TN_2023\\forecast_T2_wide.csv",
+    "long_csv": "training_data\\inference_TN_2023\\forecast_T2_long.csv"
+  }
+}

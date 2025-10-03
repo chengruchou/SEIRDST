@@ -4,6 +4,5 @@ seirdst_embedding_adj.pdf
 model/__pycache__
 result
 *.png
-training_data
 *.pyc
 model/__pycache__
