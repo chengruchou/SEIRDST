@@ -337,44 +337,44 @@ class Hybrid_SEIR_GNN(nn.Module):
 # =========================================================
 # 模擬使用
 # =========================================================
-# 假設參數
-DEVICE = 'cpu'
-NUM_NODES = 10
-N_TOTAL = 1000 # 全局人口
-T_STEPS = 160
-T_POINTS = torch.linspace(0.0, 160.0, T_STEPS, dtype=torch.float32)
+# # 假設參數
+# DEVICE = 'cpu'
+# NUM_NODES = 10
+# N_TOTAL = 1000 # 全局人口
+# T_STEPS = 160
+# T_POINTS = torch.linspace(0.0, 160.0, T_STEPS, dtype=torch.float32)
 
-# 模擬初始條件 (10 個節點)
-# S0, E0, I0, R0. 假設每個節點初始 I0=1
-I0_nodes = torch.ones(NUM_NODES, dtype=torch.float32) * 1.0
-R0_nodes = torch.zeros(NUM_NODES, dtype=torch.float32)
-E0_nodes = torch.zeros(NUM_NODES, dtype=torch.float32)
-S0_nodes = N_TOTAL - I0_nodes - R0_nodes - E0_nodes
-Y0_TENSOR = torch.stack([S0_nodes, E0_nodes, I0_nodes, R0_nodes], dim=-1) # [10, 4]
+# # 模擬初始條件 (10 個節點)
+# # S0, E0, I0, R0. 假設每個節點初始 I0=1
+# I0_nodes = torch.ones(NUM_NODES, dtype=torch.float32) * 1.0
+# R0_nodes = torch.zeros(NUM_NODES, dtype=torch.float32)
+# E0_nodes = torch.zeros(NUM_NODES, dtype=torch.float32)
+# S0_nodes = N_TOTAL - I0_nodes - R0_nodes - E0_nodes
+# Y0_TENSOR = torch.stack([S0_nodes, E0_nodes, I0_nodes, R0_nodes], dim=-1) # [10, 4]
 
-# 模擬額外輔助特徵 X_aux (例如：天氣、節日等 4 個特徵)
-# 必須與 T_STEPS 和 NUM_NODES 維度匹配。
-X_AUX_INPUT = torch.randn(T_STEPS, NUM_NODES, 4) # 形狀 [T, N, 4]
+# # 模擬額外輔助特徵 X_aux (例如：天氣、節日等 4 個特徵)
+# # 必須與 T_STEPS 和 NUM_NODES 維度匹配。
+# X_AUX_INPUT = torch.randn(T_STEPS, NUM_NODES, 4) # 形狀 [T, N, 4]
 
-# 傳遞給 seirdst 模型的參數
-GNN_PARAMS = {
-    'in_dim': 8,
-    'out_dim': 2,
-    'residual_channels': 8,
-    'dilation_channels': 8,
-    'skip_channels': 32,
-    'end_channels': 64,
-    'kernel_size': 2,
-    'blocks': 1,
-    'layers': 2,
-    'emb_length': 8
-}
+# # 傳遞給 seirdst 模型的參數
+# GNN_PARAMS = {
+#     'in_dim': 8,
+#     'out_dim': 2,
+#     'residual_channels': 8,
+#     'dilation_channels': 8,
+#     'skip_channels': 32,
+#     'end_channels': 64,
+#     'kernel_size': 2,
+#     'blocks': 1,
+#     'layers': 2,
+#     'emb_length': 8
+# }
 
-# 實例化混合模型
-model = Hybrid_SEIR_GNN(DEVICE, NUM_NODES, N_TOTAL, T_POINTS, GNN_PARAMS)
+# # 實例化混合模型
+# model = Hybrid_SEIR_GNN(DEVICE, NUM_NODES, N_TOTAL, T_POINTS, GNN_PARAMS)
 
-# 進行一次 Forward Pass
-final_pred, seir_results = model(Y0_TENSOR, X_AUX_INPUT)
+# # 進行一次 Forward Pass
+# final_pred, seir_results = model(Y0_TENSOR, X_AUX_INPUT)
 
-print(f"SEIR 求解軌跡形狀 (T, N, 4): {seir_results.shape}")
-print(f"GNN 最終預測形狀 (1, out_dim, N, T'): {final_pred.shape}")
+# print(f"SEIR 求解軌跡形狀 (T, N, 4): {seir_results.shape}")
+# print(f"GNN 最終預測形狀 (1, out_dim, N, T'): {final_pred.shape}")

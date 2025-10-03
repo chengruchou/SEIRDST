@@ -6,3 +6,4 @@ result
 *.png
 training_data
 *.pyc
+model/__pycache__

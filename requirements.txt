@@ -1,0 +1,7 @@
+tables
+torch
+pandas
+scipy
+matplotlib
+torchdiffeq
+h5py
