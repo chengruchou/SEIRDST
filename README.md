@@ -200,11 +200,47 @@ python model/inference.py \
 --gat_bool \
 --addaptadj
 ```
+---
 
-輸出於 `outputs/inference_TN_2023/`：
-- `forecast_T2_wide.csv`
-- `forecast_T2_long.csv`
-- `meta.json`
+### 產出檔案與路徑
+推論完成後會在 `outputs/inference_TN_2023/` 產出三個檔案：
+
+1. `forecast_T2_wide.csv`（寬表）  
+2. `forecast_T2_long.csv`（長表）  
+3. `meta.json`（本次推論的設定摘要）  
+
+以下為 `meta.json` 的重點欄位（實際內容以檔案為準）：
+- `year`: 2023
+- `seq_x_used`: 6（推論時實際採用的視窗長度）
+- `horizon_requested`: 2（要求預測步數）
+- `horizon_returned`: 2（實際輸出步數）
+- `num_villages`: 751（里數）
+- `cap`: 40（輸出截斷上限）
+- `dataset_dir`: training_data/dataset_TN_2023_weekly_ext
+- `outputs.wide_csv`: training_data/inference_TN_2023/forecast_T2_wide.csv
+- `outputs.long_csv`: training_data/inference_TN_2023/forecast_T2_long.csv
+
+---
+
+### 檔案格式說明
+
+#### 1) `forecast_T{T}_wide.csv`（寬表）
+- **索引**：`week_start`（該預測對應的起始週日期）
+- **欄位**：各 `VillageID`（共 751 欄）
+- **儲存值**：四捨五入且經過區間裁切的整數病例數（見「後處理規則」）
+
+> 適合用於：整體熱度圖、一次性檢視全里預測矩陣、與地圖/網格對位。
+
+#### 2) `forecast_T{T}_long.csv`（長表）
+- **欄位**：`week_start, VillageID, pred_cases`
+- **每列**：某一週 × 某一里 × 預測值（整數）
+- **特性**：更易於 groupby、串接到資料庫或與其他維度（行政區、群聚）做彙整分析。
+
+> 適合用於：時間序列折線圖、分區聚合（例如：區級/都會區級）。
+
+#### 3) `meta.json`（設定摘要）
+- **用途**：記錄此次推論的關鍵配置與輸出路徑，方便追溯與重現。  
+- **差異對齊**：`seq_x_used` 反映推論腳本最後採用的視窗長度；`horizon_returned` 反映模型實際可輸出的步數（可能因 checkpoint 設定不同而與要求值略有不同）。
 
 ---
 
