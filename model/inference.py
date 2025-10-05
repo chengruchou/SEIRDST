@@ -14,7 +14,7 @@ from data_prepare import make_dataset, load_villages, week_start_range  # 前處
 # 說明：
 # 1) 先用 make_dataset() 依你現有規則把原始資料整理為週×里×特徵，並切出 x/y（seq_x/seq_y）
 # 2) 載入訓練好的 best.pth，取「最後一筆 x 視窗」做未來 T 期預測
-# 3) 反標準化 → 四捨五入 → 非負/上限裁切（cap）→ 存 CSV
+# 3) 反標準化 → 四捨五入 → 非負/上限裁切（cap）→ 存 CSV（里層級 + 區層級 共四份）
 
 def run_inference(
     year: int,
@@ -109,31 +109,83 @@ def run_inference(
         else:
             vids = [str(i) for i in range(V)]  # 後備
 
-    # 7) 輸出 CSV
+    # 7) 輸出目錄
     out_dir = Path(out_base) / f"inference_TN_{year}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # =========================
+    # 里層級輸出（兩份）
+    # =========================
     # (a) 寬表：index=未來週，columns=VillageID
     df_wide = pd.DataFrame(pred_mat, index=future_weeks, columns=vids)
     df_wide.index.name = "week_start"
+    # 確保整數輸出
+    df_wide = df_wide.astype("Int64")
     wide_path = out_dir / f"forecast_T{H}_wide.csv"
     df_wide.to_csv(wide_path, encoding="utf-8-sig")
 
     # (b) 長表：week_start, VillageID, pred_cases
-    df_long = df_wide.reset_index().melt(id_vars=["week_start"], var_name="VillageID", value_name="pred_cases")
+    df_long = (
+        df_wide.reset_index()
+               .melt(id_vars=["week_start"], var_name="VillageID", value_name="pred_cases")
+    )
+    # 確保整數輸出
+    df_long["pred_cases"] = df_long["pred_cases"].astype("Int64")
     long_path = out_dir / f"forecast_T{H}_long.csv"
     df_long.to_csv(long_path, index=False, encoding="utf-8-sig")
 
+    # =========================
+    # 區層級輸出（兩份）
+    # =========================
+    # 里 → 區 對照
+    vmap = villages.set_index("VillageID")[["TownCode"]].copy()
+    # 檢查欄位對照完整性
+    missing = [c for c in df_wide.columns if c not in vmap.index]
+    if len(missing) > 0:
+        raise ValueError(f"下列 VillageID 缺少 TownCode 對照：{missing}")
+
+    # ---- 寬表（區）----
+    # 將欄位 VillageID 依其 TownCode 做加總
+    # 用轉置 groupby 再轉回，避免 pandas 對 axis=1 的未來棄用警告
+    col_to_towncode = vmap["TownCode"].reindex(df_wide.columns)
+    df_wide_district = (
+        df_wide.T
+               .groupby(col_to_towncode, sort=True)
+               .sum()
+               .T
+               .astype("Int64")
+    )
+    df_wide_district.index.name = "week_start"
+    wide_dist_path = out_dir / f"forecast_T{H}_wide_district.csv"
+    df_wide_district.to_csv(wide_dist_path, encoding="utf-8-sig")
+
+    # ---- 長表（區）----
+    df_long_dist = (
+        df_long.merge(vmap["TownCode"], left_on="VillageID", right_index=True, how="left")
+               .rename(columns={"TownCode": "DistrictCode"})
+               .groupby(["week_start", "DistrictCode"], as_index=False)["pred_cases"]
+               .sum()
+    )
+    df_long_dist["pred_cases"] = df_long_dist["pred_cases"].astype("Int64")
+    long_dist_path = out_dir / f"forecast_T{H}_long_district.csv"
+    df_long_dist.to_csv(long_dist_path, index=False, encoding="utf-8-sig")
+
+    # 8) meta
     meta = {
         "year": year,
         "seq_x_used": seq_x,
         "horizon_requested": horizon_T,
-        "horizon_returned": H,
-        "num_villages": V,
+        "horizon_returned": int(H),
+        "num_villages": int(V),
         "cap": int(cap),
         "dataset_dir": str(ds_dir),
         "checkpoint": checkpoint,
-        "outputs": {"wide_csv": str(wide_path), "long_csv": str(long_path)}
+        "outputs": {
+            "wide_csv": str(wide_path),
+            "long_csv": str(long_path),
+            "wide_csv_district": str(wide_dist_path),
+            "long_csv_district": str(long_dist_path)
+        }
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(meta, ensure_ascii=False, indent=2))
