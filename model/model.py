@@ -290,6 +290,9 @@ class BatchODE(nn.Module):
         
         # 使用 set_N 傳入的 N_ode 進行除法，確保正確的節點廣播
         N_safe = self.N_ode.to(S.device)
+
+        epsilon = 1e-6
+        N_safe = torch.clamp(N_safe, min=epsilon)
         
         # SEIR 微分方程 (所有運算都具備自動微分能力)
         dSdt = -beta * S * I / N_safe
@@ -407,6 +410,8 @@ class hybrid_seir(nn.Module):
         R_init = torch.zeros_like(I_init)
         E_init = I_init.clone() 
         S_init = N_norm - E_init - I_init - R_init
+
+        S_init = torch.clamp(S_init, min=0.0)
         
         # y0: [B, V, 4] -> Flatten to [B*V, 4]
         y0 = torch.stack([S_init, E_init, I_init, R_init], dim=-1).reshape(-1, 4)

@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from model import seirdst
+from model import seirdst, hybrid_seir
 import util
 
 # ---------- 形狀正規化工具 ----------
@@ -83,7 +83,7 @@ class trainer:
         """
         與原本引數相容；模型輸出會在 train/eval 中被正規化成 (B, H, V, 1)。
         """
-        self.model = seirdst(
+        self.model = hybrid_seir(
             device=device,
             num_nodes=num_nodes,
             dropout=dropout,
